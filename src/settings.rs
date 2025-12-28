@@ -17,15 +17,15 @@ struct GeneralSettings {
 
 #[derive(Debug, serde::Deserialize)]
 struct UpstreamSettings {
-    pub address: String,
-    pub port: u16,
+    address: String,
+    port: u16,
 }
 
 #[derive(Debug, serde::Deserialize)]
 struct ServerSettings {
-    pub address: String,
-    pub port: u16,
-    pub tls_port: u16,
+    address: String,
+    port: u16,
+    tls_port: u16,
 }
 
 impl Settings {
