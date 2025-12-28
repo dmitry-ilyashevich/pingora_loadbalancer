@@ -44,6 +44,10 @@ The application uses the following Rust crates:
 - `pingora-proxy`: Proxy services for HTTP requests.
 - `tracing`: Structured logging and debugging information.
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
 ## Contribution
 
 Feel free to open issues or submit pull requests for improvements!
