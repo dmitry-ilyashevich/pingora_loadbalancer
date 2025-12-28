@@ -1,7 +1,7 @@
 mod settings;
 
 use settings::Settings;
-use tracing::{debug, info};
+use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::prelude::*;
 
@@ -61,27 +61,16 @@ fn main() {
         .with(fmt_layer)
         .init();
 
-    debug!("Server Address: {}, Port: {}", settings.get_server().address, settings.get_server().port);
-
-    settings.get_upstreams().iter().for_each(|(name, upstream)| {
-        debug!("Upstream Name: {}, Address: {}, Port: {}", name, upstream.address, upstream.port);
-    });
-
-    let upstream_addresses: Vec<String> =
-        settings.get_upstreams().iter().map(|(_, upstream)| {
-            format!("{}:{}", upstream.address, upstream.port)
-        }).collect();
-
     let opt = Opt::parse_args();
     let mut my_server = Server::new(opt).unwrap();
     my_server.bootstrap();
 
-    let mut upstreams = LoadBalancer::try_from_iter(upstream_addresses).unwrap();
+    let mut upstreams = LoadBalancer::try_from_iter(settings.get_upstream_addresses()).unwrap();
 
     // We add health check in the background so that the bad server is never selected.
     let hc = health_check::TcpHealthCheck::new();
     upstreams.set_health_check(hc);
-    upstreams.health_check_frequency = Some(Duration::from_secs(100));
+    upstreams.health_check_frequency = Some(Duration::from_secs(settings.get_health_check_interval_secs()));
 
     let background = background_service("health check", upstreams);
 
@@ -89,8 +78,7 @@ fn main() {
 
     let mut lb = pingora_proxy::http_proxy_service(&my_server.configuration, LB(upstreams));
 
-    let server_address = format!("{}:{}", settings.get_server().address.clone(), settings.get_server().port);
-    lb.add_tcp(&server_address);
+    lb.add_tcp(&settings.get_server_addr());
 
     let cert_path = format!("{}/lvh.me+3.pem", env!("CARGO_MANIFEST_DIR"));
     let key_path = format!("{}/lvh.me+3-key.pem", env!("CARGO_MANIFEST_DIR"));
@@ -98,8 +86,7 @@ fn main() {
     let mut tls_settings =
         pingora_core::listeners::tls::TlsSettings::intermediate(&cert_path, &key_path).unwrap();
     tls_settings.enable_h2();
-    let tls_server_address = format!("{}:{}", settings.get_server().address.clone(), settings.get_server().tls_port);
-    lb.add_tls_with_settings(&tls_server_address, None, tls_settings);
+    lb.add_tls_with_settings(&settings.get_tls_server_addr(), None, tls_settings);
 
     my_server.add_service(lb);
     my_server.add_service(background);
