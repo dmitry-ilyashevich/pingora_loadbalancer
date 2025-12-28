@@ -1,0 +1,17 @@
+[general]
+log_level = "info"
+
+[server]
+address = "lvh.me"
+port = 3000
+tls_port = 3443
+
+[upstreams]
+
+[upstreams.alpha]
+address = "lvh.me"
+port = 3001
+
+[upstreams.beta]
+address = "lvh.me"
+port = 3002
