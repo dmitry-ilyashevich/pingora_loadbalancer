@@ -35,7 +35,7 @@ impl Settings {
         Config::builder()
             .add_source(config::File::with_name("Settings"))
             .build()
-            .unwrap_or_else(|e| panic!("Failed to load configuration: {}", e))
+            .expect("Failed to load configuration")
             .try_deserialize()
             .unwrap_or_else(|e| panic!("Failed to deserialize configuration: {}", e))
     }

@@ -43,7 +43,7 @@ impl ProxyHttp for LB {
     ) -> Result<()> {
         upstream_request
             .insert_header("Host", "lvh.me")
-            .unwrap();
+            .expect("Failed to insert Host header");
         Ok(())
     }
 }
@@ -55,14 +55,14 @@ fn main() {
         .with_target(false);
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new(settings.get_log_level()))
-        .unwrap();
+        .expect("Failed to create filter layer");
     tracing_subscriber::registry()
         .with(filter_layer)
         .with(fmt_layer)
         .init();
 
     let opt = Opt::parse_args();
-    let mut my_server = Server::new(opt).unwrap();
+    let mut my_server = Server::new(opt).expect("Failed to create server");
     my_server.bootstrap();
 
     let mut upstreams = LoadBalancer::try_from_iter(settings.get_upstream_addresses()).unwrap();
@@ -87,7 +87,7 @@ fn main() {
     let key_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), key_file);
 
     let mut tls_settings =
-        pingora_core::listeners::tls::TlsSettings::intermediate(&cert_path, &key_path).unwrap();
+        pingora_core::listeners::tls::TlsSettings::intermediate(&cert_path, &key_path).expect("Failed to create TLS settings");
     tls_settings.enable_h2();
     lb.add_tls_with_settings(&settings.get_tls_server_addr(), None, tls_settings);
 
