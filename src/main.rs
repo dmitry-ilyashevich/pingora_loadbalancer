@@ -80,8 +80,11 @@ fn main() {
 
     lb.add_tcp(&settings.get_server_addr());
 
-    let cert_path = format!("{}/lvh.me+3.pem", env!("CARGO_MANIFEST_DIR"));
-    let key_path = format!("{}/lvh.me+3-key.pem", env!("CARGO_MANIFEST_DIR"));
+    let cert_file = settings.get_cert_file();
+    let key_file = settings.get_key_file();
+
+    let cert_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), cert_file);
+    let key_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), key_file);
 
     let mut tls_settings =
         pingora_core::listeners::tls::TlsSettings::intermediate(&cert_path, &key_path).unwrap();
