@@ -16,7 +16,10 @@ use pingora_core::Result;
 use pingora_load_balancing::{health_check, selection::RoundRobin, LoadBalancer};
 use pingora_proxy::{ProxyHttp, Session};
 
-pub struct LB(Arc<LoadBalancer<RoundRobin>>);
+pub struct LB {
+    balancer: Arc<LoadBalancer<RoundRobin>>,
+    sni: String,
+}
 
 #[async_trait]
 impl ProxyHttp for LB {
@@ -25,13 +28,13 @@ impl ProxyHttp for LB {
 
     async fn upstream_peer(&self, _session: &mut Session, _ctx: &mut ()) -> Result<Box<HttpPeer>> {
         let upstream = self
-            .0
+            .balancer
             .select(b"", 256) // hash doesn't matter
             .unwrap();
 
         info!("upstream peer is: {:?}", upstream);
 
-        let peer = Box::new(HttpPeer::new(upstream, true, "lvh.me".to_string()));
+        let peer = Box::new(HttpPeer::new(upstream, true, self.sni.to_string()));
         Ok(peer)
     }
 
@@ -42,7 +45,7 @@ impl ProxyHttp for LB {
         _ctx: &mut Self::CTX,
     ) -> Result<()> {
         upstream_request
-            .insert_header("Host", "lvh.me")
+            .insert_header("Host", self.sni.as_str())
             .expect("Failed to insert Host header");
         Ok(())
     }
@@ -76,7 +79,13 @@ fn main() {
 
     let upstreams = background.task();
 
-    let mut lb = pingora_proxy::http_proxy_service(&my_server.configuration, LB(upstreams));
+    let mut lb = pingora_proxy::http_proxy_service(
+        &my_server.configuration,
+        LB {
+            balancer: upstreams,
+            sni: settings.get_server_hostname().to_string()
+        }
+    );
 
     lb.add_tcp(&settings.get_server_addr());
 

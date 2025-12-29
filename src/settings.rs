@@ -55,6 +55,10 @@ impl Settings {
             .collect()
     }
 
+    pub(crate) fn get_server_hostname(&self) -> &str {
+        &self.server.address
+    }
+
     pub(crate) fn get_server_addr(&self) -> String {
         format!("{}:{}", &self.server.address, &self.server.port)
     }
